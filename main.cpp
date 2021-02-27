@@ -4,6 +4,7 @@
 #include <QQmlEngine>
 #include <QQmlContext>
 #include <QVariant>
+#include <QSurfaceFormat>
 #include "CBackend.h"
 
 int main(int argc, char *argv[])
@@ -15,6 +16,11 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
+
+    // Ensure smooth Shapes:
+    QSurfaceFormat format;
+    format.setSamples(8);
+    QSurfaceFormat::setDefaultFormat(format);
 
     // Instantiate the tray manager:
     Backend = new CBackend();
