@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>icons/cogs-solid.png</file>
+        <file>icons/undo-alt-solid.png</file>
+    </qresource>
+</RCC>
