@@ -16,12 +16,8 @@ Icons by Fontawesome Free: https://fontawesome.com/license/free
 */
 
 import QtQuick 2.11
-import QtQuick.Window 2.11
 import QtQuick.Controls 2.4
-import QtQuick.Controls.Styles 1.4
 import QtQuick.Shapes 1.11
-import QtQuick.Dialogs 1.3
-import QtQuick.Layouts 1.0
 
 ApplicationWindow {
     id: mainWindow
@@ -152,7 +148,7 @@ ApplicationWindow {
             x: 0
             y: 10
             width: mainWindow.width
-            height: 20
+            height: 24
             color: bg
 
             Text {
