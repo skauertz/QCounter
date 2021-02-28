@@ -1,16 +1,34 @@
+/*
+Copyright (C) 2021 by Sebastian Kauertz.
+
+This file is part of QCounter, a QML-based counter.
+
+QCounter is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+QCounter is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.
+If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import QtQuick 2.11
-import QtQuick.Window 2.2
+import QtQuick.Window 2.11
 import QtQuick.Controls 2.4
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Shapes 1.11
-import QtQuick.Dialogs 1.2
+import QtQuick.Dialogs 1.3
+import QtQuick.Layouts 1.0
 
-Window {
+ApplicationWindow {
     id: mainWindow
     visible: true
     width: 200
     height: 180
-    title: qsTr("Counter")
+    x: Backend.windowPosX
+    y: Backend.windowPosY
+    title: "Counter"
 
     // Variables for old settings (for Cancel functionality):
     property int oldOptionNegative:   optionNegative.checkState
@@ -24,16 +42,18 @@ Window {
     property string lightGrey:             "#dbdbdb"
     property string lightBlue:             "#8ca5c2"
 
-    property string foreground: lightGrey
-    property string background: darkGrey
+    property string fg: lightGrey
+    property string bg: darkGrey
 
     property int count: 0
     property int lowerLimit: 0
+    property int oldlowerLimit: 0
     property int upperLimit: 999999
+    property int oldupperLimit: 999999
 
     property int intro: 1   // Display the intro text
 
-    color: background
+    color: bg
 
 
     function increaseCounter() {
@@ -41,6 +61,7 @@ Window {
         if (optionWrap.checkState === 0) {
             // No wrapping
             count = Math.min(count, upperLimit);
+            count = Math.max(count, lowerLimit);
         }
         else {
             // Wrapping
@@ -48,17 +69,45 @@ Window {
         }
         if (intro === 1) {intro = 0; anim.running = true;}
     }
+
     function decreaseCounter() {
         count -= 1;
         if (optionWrap.checkState === 0) {
             // No wrapping
             count = Math.max(count, lowerLimit);
+            count = Math.min(count, upperLimit);
         }
         else {
             // Wrapping
             if (count < lowerLimit) count = upperLimit;
         }
         if (intro === 1) {intro = 0; anim.running = true;}
+    }
+
+
+    Component.onCompleted: {
+        if (Backend.settingNegative === 2)   optionNegative.checkState = 2;
+        else                                 optionNegative.checkState = 0;
+        if (Backend.settingUpperLimit === 2) optionUpperLimit.checkState = 2;
+        else                                 optionUpperLimit.checkState = 0;
+        if (Backend.settingLowerLimit === 2) optionLowerLimit.checkState = 2;
+        else                                 optionLowerLimit.checkState = 0;
+        if (Backend.settingWrap === 2)       optionWrap.checkState = 2;
+        else                                 optionWrap.checkState = 0;
+
+        if (Backend.settingNegative === 2)   lowerLimit = -999999;
+        else                                 lowerLimit = 0;
+        if (Backend.settingUpperLimit === 2) upperLimit = Backend.UpperLimit;
+        else                                 upperLimit = 999999;
+        if (Backend.settingLowerLimit === 2) lowerLimit = Backend.LowerLimit;
+        else                                 Backend.settingNegative ? lowerLimit = -999999 : lowerLimit = 0;
+
+        oldupperLimit = upperLimit;
+        oldlowerLimit = lowerLimit;
+    }
+
+    onClosing: {
+        Backend.savePosition(mainWindow.x, mainWindow.y, mainWindow.width, mainWindow.height);
     }
 
 
@@ -102,7 +151,7 @@ Window {
             y: 10
             width: mainWindow.width
             height: 20
-            color: background
+            color: bg
 
             Text {
                 id: introText
@@ -120,7 +169,7 @@ Window {
                     id: anim
                     target: introText
                     property: "color"
-                    to: background
+                    to: bg
 //                    property: "y"
 //                    to: -50
                     easing.type: Easing.InOutQuad
@@ -140,7 +189,7 @@ Window {
             antialiasing: true
 
             ShapePath {
-                fillColor: mainWindow.midGrey // "transparent"
+                fillColor: mainWindow.midGrey
                 strokeColor: "orange"
                 fillRule: ShapePath.WindingFill
                 strokeWidth: 2
@@ -191,7 +240,7 @@ Window {
                 id: textPlus
                 width: 46
                 height: 30
-                color: mainWindow.foreground
+                color: mainWindow.fg
                 text: "+"
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
@@ -232,7 +281,7 @@ Window {
                 id: textMinus
                 width: 46
                 height: 55
-                color: mainWindow.foreground
+                color: mainWindow.fg
                 text: "-"
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
@@ -249,13 +298,13 @@ Window {
             width: 70
             height: 40
 
-            color: "transparent" //mainWindow.foreground
+            color: "transparent"
 
             Text {
                 id: text
                 width: parent.width
                 height: parent.height
-                color: mainWindow.foreground
+                color: mainWindow.fg
                 text: count
                 font.bold: true
                 verticalAlignment: Text.AlignVCenter
@@ -325,6 +374,7 @@ Window {
     } // Item
 
 
+
 /////////////////////////////////////////////////////////////////////
     Item {
         id: optionsView
@@ -334,9 +384,12 @@ Window {
 
         StackView.onActivating: {
             //console.log("Options activating");
-            //optionNegative.checkState       = listView.model.settingLastSelectedDate;
-            //optionAutosave.checkState       = listView.model.settingAutosave;
-            //optionMinimizeToTray.checkState = listView.model.settingMinimizeToTray;
+            optionNegative.checkState       = Backend.settingNegative;
+            optionUpperLimit.checkState     = Backend.settingUpperLimit;
+            optionLowerLimit.checkState     = Backend.settingLowerLimit;
+            optionWrap.checkState           = Backend.settingWrap;
+            lowerLimit                      = Backend.LowerLimit;
+            upperLimit                      = Backend.UpperLimit;
             oldOptionNegative               = optionNegative.checkState;
             oldOptionUpperLimit             = optionUpperLimit.checkState;
             oldOptionLowerLimit             = optionLowerLimit.checkState;
@@ -351,8 +404,8 @@ Window {
 
             height: parent.height - 30
             width: parent.width
-            color: background
-            border.color: background
+            color: bg
+            border.color: bg
 
 
             // Allow negative values:
@@ -371,7 +424,7 @@ Window {
                   x: optionNegative.leftPadding
                   y: parent.height / 2 - height / 2
                   radius: 3
-                  border.color: parent.focus ? "orange" : foreground
+                  border.color: parent.focus ? "orange" : fg
 
                   Rectangle {
                       width: 8
@@ -388,7 +441,7 @@ Window {
                      text: optionNegative.text
                      font.family: "Roboto"
                      font.bold: true
-                     color: foreground
+                     color: fg
                      verticalAlignment: Text.AlignVCenter
                      leftPadding: optionNegative.indicator.width + optionNegative.spacing
                  }
@@ -415,7 +468,7 @@ Window {
                   x: optionUpperLimit.leftPadding
                   y: parent.height / 2 - height / 2
                   radius: 3
-                  border.color: parent.focus ? "orange" : foreground
+                  border.color: parent.focus ? "orange" : fg
 
                   Rectangle {
                       width: 8
@@ -432,14 +485,14 @@ Window {
                      text: optionUpperLimit.text
                      font.family: "Roboto"
                      font.bold: true
-                     color: foreground
+                     color: fg
                      verticalAlignment: Text.AlignVCenter
                      leftPadding: optionUpperLimit.indicator.width + optionUpperLimit.spacing
                  }
 
                 onToggled: {
-                    // Reset limit to default when unchecked
-                    checked ? 0 : upperLimit = 999999
+                    // Save limit when unchecked
+                    checked ? (upperLimitText.text = oldupperLimit) : (oldupperLimit = upperLimit)
                 }
             }
             Rectangle {
@@ -448,7 +501,7 @@ Window {
                 width: 55
                 height: 20
                 color: midGrey
-                border.color: foreground
+                border.color: fg
                 border.width: 2
                 visible: optionUpperLimit.checkState
 
@@ -463,9 +516,9 @@ Window {
                     maximumLength: 7
                     horizontalAlignment: TextInput.AlignHCenter
                     verticalAlignment: TextInput.AlignVCenter
-                    text: ""
+                    text: upperLimit
                     font.bold: true
-                    color: foreground
+                    color: fg
 
                     echoMode: TextInput.Normal
 
@@ -492,7 +545,7 @@ Window {
                   x: optionLowerLimit.leftPadding
                   y: parent.height / 2 - height / 2
                   radius: 3
-                  border.color: parent.focus ? "orange" : foreground
+                  border.color: parent.focus ? "orange" : fg
 
                   Rectangle {
                       width: 8
@@ -509,14 +562,14 @@ Window {
                      text: optionLowerLimit.text
                      font.family: "Roboto"
                      font.bold: true
-                     color: foreground
+                     color: fg
                      verticalAlignment: Text.AlignVCenter
                      leftPadding: optionLowerLimit.indicator.width + optionLowerLimit.spacing
                  }
 
                 onToggled: {
-                    // Reset limit to default when unchecked
-                    checked ? 0 : lowerLimit = 0
+                    // Save limit when unchecked
+                    checked ? (lowerLimitText.text = oldlowerLimit) : (oldlowerLimit = lowerLimit)
                 }
             }
             Rectangle {
@@ -525,7 +578,7 @@ Window {
                 width: 55
                 height: 20
                 color: midGrey
-                border.color: foreground
+                border.color: fg
                 border.width: 2
                 visible: optionLowerLimit.checkState
 
@@ -540,9 +593,9 @@ Window {
                     maximumLength: 7
                     horizontalAlignment: TextInput.AlignHCenter
                     verticalAlignment: TextInput.AlignVCenter
-                    text: ""
+                    text: lowerLimit
                     font.bold: true
-                    color: foreground
+                    color: fg
 
                     echoMode: TextInput.Normal
 
@@ -569,7 +622,7 @@ Window {
                   x: optionWrap.leftPadding
                   y: parent.height / 2 - height / 2
                   radius: 3
-                  border.color: parent.focus ? "orange" : foreground
+                  border.color: parent.focus ? "orange" : fg
 
                   Rectangle {
                       width: 8
@@ -586,7 +639,7 @@ Window {
                      text: optionWrap.text
                      font.family: "Roboto"
                      font.bold: true
-                     color: foreground
+                     color: fg
                      verticalAlignment: Text.AlignVCenter
                      leftPadding: optionWrap.indicator.width + optionWrap.spacing
                  }
@@ -603,7 +656,7 @@ Window {
         Rectangle {
             height: 30
             width: parent.width
-            color: background
+            color: bg
             border.color: "transparent"
             anchors.top: form.bottom
 
@@ -618,42 +671,45 @@ Window {
                     width: 60
                     radius: 15
                     anchors.verticalCenter: parent.verticalCenter
-                    border.color: parent.down ? background : (parent.focus ? "orange" : foreground)
+                    border.color: parent.down ? bg : (parent.focus ? "orange" : fg)
                     border.width: 2
-                    color: parent.down ? foreground : background
+                    color: parent.down ? fg : bg
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    color: parent.down ? background : foreground
+                    color: parent.down ? bg : fg
                     font.bold: true
                     font.pixelSize: 12
                     text: "Cancel"
                 }
 
                 onClicked: {
+                    // Set back to old values:
+                    optionNegative.checkState       = oldOptionNegative;
+                    optionUpperLimit.checkState     = oldOptionUpperLimit;
+                    optionLowerLimit.checkState     = oldOptionLowerLimit;
+                    optionWrap.checkState           = oldOptionWrap;
+                    upperLimitText.text         = upperLimit
+                    lowerLimitText.text         = lowerLimit
+                    // Save values to backend:
+                    Backend.settingNegative     = optionNegative.checkState;       // 0: Unchecked, 1: Partially Checked, 2: Checked
+                    Backend.settingUpperLimit   = optionUpperLimit.checkState;     // 0: Unchecked, 1: Partially Checked, 2: Checked
+                    Backend.UpperLimit          = upperLimit;
+                    Backend.settingLowerLimit   = optionLowerLimit.checkState;     // 0: Unchecked, 1: Partially Checked, 2: Checked
+                    Backend.LowerLimit          = lowerLimit;
+                    Backend.settingWrap         = optionWrap.checkState;           // 0: Unchecked, 1: Partially Checked, 2: Checked
+
                     if (stack.depth === 1) {
                         if (!stack.busy) {
                             stack.push(optionsView);
-                            //view = 2;
                         }
                     }
                     else if (stack.depth === 2) {
                         if (!stack.busy) {
                             stack.pop();
-                            //view = 1;
                         }
                     }
-                    // Set back to old values
-                    optionNegative.checkState       = oldOptionNegative;
-                    optionUpperLimit.checkState     = oldOptionUpperLimit;
-                    optionLowerLimit.checkState     = oldOptionLowerLimit;
-                    optionWrap.checkState           = oldOptionWrap;
-                    upperLimitText.text = ""
-                    lowerLimitText.text = ""
-                    //listView.model.settingLastSelectedDate     = optionNegative.checkState;       // 0: Unchecked, 1: Partially Checked, 2: Checked
-                    //listView.model.settingAutosave             = optionAutosave.checkState;       // 0: Unchecked, 1: Partially Checked, 2: Checked
-                    //listView.model.settingMinimizeToTray       = optionMinimizeToTray.checkState; // 0: Unchecked, 1: Partially Checked, 2: Checked
                 }
 
             }
@@ -668,36 +724,22 @@ Window {
                     width: 60
                     radius: 15
                     anchors.verticalCenter: parent.verticalCenter
-                    border.color: parent.down ? background : (parent.focus ? "orange" : foreground)
+                    border.color: parent.down ? bg : (parent.focus ? "orange" : fg)
                     border.width: 2
-                    color: parent.down ? foreground : background
+                    color: parent.down ? fg : bg
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    color: parent.down ? background : foreground
+                    color: parent.down ? bg : fg
                     font.bold: true
                     font.pixelSize: 12
                     text: "OK"
                 }
 
                 onClicked: {
-                    if (stack.depth === 1) {
-                        if (!stack.busy) {
-                            stack.push(optionsView);
-                        }
-                    }
-                    else if (stack.depth === 2) {
-                        if (!stack.busy) {
-                            stack.pop();
-                        }
-                    }
-                    // Apply new values
-                    //listView.model.settingLastSelectedDate     = optionNegative.checkState;       // 0: Unchecked, 1: Partially Checked, 2: Checked
-                    //listView.model.settingAutosave             = optionAutosave.checkState;       // 0: Unchecked, 1: Partially Checked, 2: Checked
-                    //listView.model.settingMinimizeToTray       = optionMinimizeToTray.checkState; // 0: Unchecked, 1: Partially Checked, 2: Checked
-
-                    if (optionUpperLimit.checkState === 2) {
+                   // Apply new values:
+                   if (optionUpperLimit.checkState === 2) {
                         // If option is checked, take the value if there is one
                         if (upperLimitText.length > 0) {
                             upperLimit = upperLimitText.text;
@@ -707,6 +749,10 @@ Window {
                             upperLimit = 999999;
                         }
                     }
+                    else {
+                        upperLimit = 999999;
+                    }
+
                     if (optionLowerLimit.checkState === 2) {
                         // If option is checked, take the value if there is one
                         if (lowerLimitText.length > 0) {
@@ -720,12 +766,32 @@ Window {
                         }
                     }
                     else {
+                        // If no lower limit: Set default value depending on whether negative values allowed or not:
                         if (optionNegative.checkState === 2) lowerLimit = -999999;
                         else                                 lowerLimit = 0;
                     }
+
+                    // Save new values in backend:
+                    Backend.settingNegative     = optionNegative.checkState;       // 0: Unchecked, 1: Partially Checked, 2: Checked
+                    Backend.settingUpperLimit   = optionUpperLimit.checkState;     // 0: Unchecked, 1: Partially Checked, 2: Checked
+                    Backend.UpperLimit          = upperLimit;
+                    Backend.settingLowerLimit   = optionLowerLimit.checkState;     // 0: Unchecked, 1: Partially Checked, 2: Checked
+                    Backend.LowerLimit          = lowerLimit;
+                    Backend.settingWrap         = optionWrap.checkState;           // 0: Unchecked, 1: Partially Checked, 2: Checked
+
+                    if (stack.depth === 1) {
+                        if (!stack.busy) {
+                            stack.push(optionsView);
+                        }
+                    }
+                    else if (stack.depth === 2) {
+                        if (!stack.busy) {
+                            stack.pop();
+                        }
+                    }
                 }
 
-            }
+            }  // Button
 
         }
 
