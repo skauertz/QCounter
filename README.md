@@ -40,14 +40,14 @@ A simple tally counter that allows you to count...stuff.
 
 ### Linux Installation
 #### Requirements
-* Qt>=5.9.5 (Ubuntu 18.04 or later)
+* None - all dependencies are contained in the Release package
 
 #### Installation
 A release package for Linux can be downloaded from the [Release] page.
 
-QCounter does not require system-wide installation. Just extract the archive in a location of your choice and start it by launching `QCounter` from there.
+QCounter does not require system-wide installation. Just extract the archive in a location of your choice and start it by launching `QCounter.sh` from there.
 
-Note: Make sure `QCounter` is made executable.
+Note: Make sure `QCounter.sh` and `QCounter` are made executable.
 
 ---
 
