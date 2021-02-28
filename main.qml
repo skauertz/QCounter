@@ -9,7 +9,7 @@ Window {
     id: mainWindow
     visible: true
     width: 200
-    height: 160
+    height: 180
     title: qsTr("Counter")
 
     // Variables for old settings (for Cancel functionality):
@@ -31,6 +31,8 @@ Window {
     property int lowerLimit: 0
     property int upperLimit: 999999
 
+    property int intro: 1   // Display the intro text
+
     color: background
 
 
@@ -44,6 +46,7 @@ Window {
             // Wrapping
             if (count > upperLimit) count = lowerLimit;
         }
+        if (intro === 1) {intro = 0; anim.running = true;}
     }
     function decreaseCounter() {
         count -= 1;
@@ -55,6 +58,7 @@ Window {
             // Wrapping
             if (count < lowerLimit) count = upperLimit;
         }
+        if (intro === 1) {intro = 0; anim.running = true;}
     }
 
 
@@ -92,6 +96,40 @@ Window {
             //console.log("Main view activating");
         }
 
+        Rectangle {
+            //id: introText
+            x: 0
+            y: 10
+            width: mainWindow.width
+            height: 20
+            color: background
+
+            Text {
+                id: introText
+                width: parent.width
+                height: parent.height
+                color: lightGrey
+                text: "Press \"+\" or \"-\" to increase/decrease counter"
+                font.bold: true
+                wrapMode: Text.WordWrap
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 12
+
+                PropertyAnimation {
+                    id: anim
+                    target: introText
+                    property: "color"
+                    to: background
+//                    property: "y"
+//                    to: -50
+                    easing.type: Easing.InOutQuad
+                    duration: 800
+                }
+           }
+
+
+        }
 
         Shape {
             id: hex1
@@ -128,13 +166,14 @@ Window {
             antialiasing: true
 
             MouseArea {
+                id: maPlus
                 anchors.fill: parent
                 onClicked: increaseCounter()
             }
 
 
             ShapePath {
-                fillColor: "transparent"
+                fillColor: maPlus.pressed ? midGrey : "transparent"
                 strokeColor: "orange"
                 fillRule: ShapePath.WindingFill
                 strokeWidth: 2
@@ -146,7 +185,6 @@ Window {
                 PathLine { relativeX: 46  ; relativeY: 0}
                 PathLine { relativeX: -23  ; relativeY: 1.732*23.0}
                 PathLine { relativeX: -23  ; relativeY: -1.732*23.0}
-
             }
 
             Text {
@@ -170,12 +208,13 @@ Window {
             antialiasing: true
 
             MouseArea {
+                id: maMinus
                 anchors.fill: parent
                 onClicked: decreaseCounter()
             }
 
             ShapePath {
-                fillColor: "transparent"
+                fillColor: maMinus.pressed ? midGrey : "transparent"
                 strokeColor: "orange"
                 fillRule: ShapePath.WindingFill
                 strokeWidth: 2
@@ -188,6 +227,7 @@ Window {
                 PathLine { relativeX: -23  ; relativeY: -1.732*23.0}
                 PathLine { relativeX: -23  ; relativeY:  1.732*23.0}
             }
+
             Text {
                 id: textMinus
                 width: 46
